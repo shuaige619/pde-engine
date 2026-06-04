@@ -1,0 +1,7 @@
+/* 全局样式 */
+#root { min-height: 100vh; }
+.ant-layout { min-height: 100vh; }
+.ant-layout-sider { box-shadow: 2px 0 8px rgba(0,0,0,0.05); }
+.ant-card { border-radius: 8px; }
+.ant-steps-vertical > .ant-steps-item > .ant-steps-item-container > .ant-steps-item-tail { left: 16px; }
+pre { background: #f6f8fa; padding: 12px; border-radius: 6px; margin: 0; }

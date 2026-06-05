@@ -6,7 +6,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { ZodError } from 'zod';
-import { AppError, ValidationError, NotFoundError } from '../utils/error';
+import { AppError, ValidationError, NotFoundError } from '../utils/errors';
 import { formatZodErrors } from '../utils/validate';
 import logger from '../utils/logger';
 

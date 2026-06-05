@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { ArtifactController } from "../controllers/artifact.controller";
+import artifactController from "../controllers/artifact.controller";
 
 const router = Router();
-const controller = new ArtifactController();
+const controller = artifactController;
 
 /**
  * @route   GET /api/v1/projects/:projectId/artifacts

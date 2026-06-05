@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { ProjectController } from "../controllers/project.controller";
+import projectController from "../controllers/project.controller";
 
 const router = Router();
-const controller = new ProjectController();
+const controller = projectController;
 
 /**
  * @route   GET /api/v1/projects

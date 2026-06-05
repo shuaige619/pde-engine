@@ -13,191 +13,290 @@ datasource db {
 
 enum UserRole {
   ADMIN
+  OWNER
+  DEVELOPER
+  PRODUCT
+  DESIGNER
+  TESTER
   USER
-  EDITOR
-  VIEWER
 }
 
 enum UserStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
-  PENDING
-}
-
-enum AuditAction {
-  CREATE
-  UPDATE
-  DELETE
-  LOGIN
-  LOGOUT
-  REGISTER
-  STATUS_CHANGE
-  CONFIG_UPDATE
 }
 
 enum ProjectStatus {
-  PLANNING
-  IN_PROGRESS
+  DRAFT
+  RUNNING
   PAUSED
+  FAILED
   COMPLETED
+  PENDING_ACCEPTANCE
+  ACCEPTED
   ARCHIVED
 }
 
-enum Priority {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
+enum Platform {
+  WEB
+  APP
+  UNIAPP
+  CHROME_EXTENSION
+  BACKEND_API
 }
 
-enum RequirementStatus {
-  DRAFT
-  UNDER_REVIEW
-  APPROVED
-  REJECTED
-  IMPLEMENTED
-  VERIFIED
+enum CodeSource {
+  TEMPLATE
+  GIT
 }
 
-enum RequirementType {
-  FUNCTIONAL
-  NON_FUNCTIONAL
-  TECHNICAL
-  BUSINESS
+enum TestMode {
+  LOCAL
+  BROWSER
+  UPLOAD
 }
 
-enum SprintStatus {
-  PLANNING
-  ACTIVE
-  COMPLETED
-  CANCELLED
-}
-
-enum TaskStatus {
-  TODO
-  IN_PROGRESS
-  IN_REVIEW
-  TESTING
-  DONE
-  CANCELLED
-}
-
-enum TaskType {
-  DEVELOPMENT
-  DESIGN
-  TESTING
-  DOCUMENTATION
-  RESEARCH
-  BUGFIX
-  REFACTOR
-}
-
-enum BugSeverity {
-  TRIVIAL
-  MINOR
-  MAJOR
-  CRITICAL
-  BLOCKER
-}
-
-enum BugStatus {
-  NEW
-  CONFIRMED
-  IN_PROGRESS
-  RESOLVED
-  VERIFIED
-  CLOSED
-  REOPENED
-}
-
-enum ArtifactType {
-  DOCUMENT
-  SOURCE_CODE
-  BINARY
-  IMAGE
-  VIDEO
-  ARCHIVE
-  CONFIGURATION
-  DATABASE
-}
-
-enum ArtifactStatus {
-  DRAFT
-  REVIEWING
-  APPROVED
-  PUBLISHED
-  DEPRECATED
+enum ProjectMemberRole {
+  OWNER
+  MEMBER
 }
 
 enum PipelineStatus {
   PENDING
   RUNNING
-  SUCCESS
+  PAUSED
   FAILED
-  CANCELLED
+  COMPLETED
+}
+
+enum StageStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
   SKIPPED
 }
 
-enum DocumentStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
+enum NodeStatus {
+  PENDING
+  WAITING
+  RUNNING
+  COMPLETED
+  FAILED
+  SKIPPED
+  WAITING_USER
+}
+
+enum ArtifactType {
+  PRD
+  UI_DESIGN
+  TECH_DESIGN
+  TEST_PLAN
+  CODE_FRONTEND
+  CODE_BACKEND
+  TEST_REPORT
+  FIX_PATCH
+  ACCEPTANCE
+}
+
+enum TestReportStatus {
+  PENDING
+  PARSING
+  PASSED
+  FAILED
+  FIXING
+  REGRESSION
+}
+
+enum TestCaseStatus {
+  PASSED
+  FAILED
+  SKIPPED
+}
+
+enum FixStatus {
+  PENDING
+  DIAGNOSING
+  READY
+  APPLYING
+  COMPLETED
+  FAILED
+  ROLLBACK
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
 }
 
 // ==========================================
-// User & Permission Models
+// Models
 // ==========================================
 
 model User {
-  id        String     @id @default(uuid())
-  email     String     @unique
-  username  String     @unique
-  password  String
-  name      String?
-  avatar    String?
-  role      UserRole   @default(USER)
-  status    UserStatus @default(ACTIVE)
-  lastLogin DateTime?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  // Relations
-  auditLogs       AuditLog[]
-  ownedProjects   Project[]       @relation("ProjectOwner")
-  memberProjects  ProjectMember[]
-  createdTasks    Task[]          @relation("TaskCreator")
-  assignedTasks   Task[]          @relation("TaskAssignee")
-  reportedBugs    Bug[]           @relation("BugReporter")
-  assignedBugs    Bug[]           @relation("BugAssignee")
-  comments        Comment[]
-  documents       Document[]      @relation("DocumentAuthor")
-
-  @@map("users")
+  id            String     @id @default(uuid())
+  email         String     @unique
+  password      String
+  name          String
+  role          UserRole   @default(USER)
+  status        UserStatus @default(ACTIVE)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  projects      ProjectMember[]
 }
 
-// ==========================================
-// Audit & Config Models
-// ==========================================
+model Project {
+  id              String        @id @default(uuid())
+  name            String
+  description     String?
+  status          ProjectStatus @default(DRAFT)
+  currentStage    String?
+  platform        Platform
+  codeSource      CodeSource
+  gitConfig       Json?
+  figmaBinding    Json?
+  testMode        TestMode      @default(LOCAL)
+  createdById     String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  members         ProjectMember[]
+  pipeline        PipelineInstance?
+  artifacts       Artifact[]
+  testReports     TestReport[]
+  fixRecords      FixRecord[]
+  auditLogs       AuditLog[]
+}
+
+model ProjectMember {
+  id        String           @id @default(uuid())
+  projectId String
+  userId    String
+  role      ProjectMemberRole @default(MEMBER)
+  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+model PipelineInstance {
+  id          String         @id @default(uuid())
+  projectId   String         @unique
+  status      PipelineStatus @default(PENDING)
+  currentNode String?
+  progress    Float          @default(0)
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stages      Stage[]
+  nodes       NodeExecution[]
+}
+
+model Stage {
+  id          String      @id @default(uuid())
+  pipelineId  String
+  name        String
+  order       Int
+  status      StageStatus @default(PENDING)
+  startedAt   DateTime?
+  completedAt DateTime?
+  pipeline    PipelineInstance @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  nodes       NodeExecution[]
+}
+
+model NodeExecution {
+  id          String     @id @default(uuid())
+  pipelineId  String
+  stageId     String?
+  name        String
+  type        String
+  status      NodeStatus @default(PENDING)
+  input       Json?
+  output      Json?
+  logs        String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  retryCount  Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  pipeline    PipelineInstance @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  stage       Stage?     @relation(fields: [stageId], references: [id])
+}
+
+model Artifact {
+  id          String       @id @default(uuid())
+  projectId   String
+  name        String
+  type        ArtifactType
+  stage       String
+  version     Int          @default(1)
+  storagePath String
+  metadata    Json?
+  isMarked    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model TestReport {
+  id            String           @id @default(uuid())
+  projectId     String
+  status        TestReportStatus @default(PENDING)
+  totalCases    Int              @default(0)
+  passedCases   Int              @default(0)
+  failedCases   Int              @default(0)
+  skippedCases  Int              @default(0)
+  reportData    Json?
+  createdAt     DateTime         @default(now())
+  project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  testCases     TestCase[]
+}
+
+model TestCase {
+  id          String         @id @default(uuid())
+  reportId    String
+  name        String
+  status      TestCaseStatus
+  duration    Int?
+  errorMsg    String?
+  stackTrace  String?
+  createdAt   DateTime       @default(now())
+  report      TestReport     @relation(fields: [reportId], references: [id], onDelete: Cascade)
+}
+
+model FixRecord {
+  id            String     @id @default(uuid())
+  projectId     String
+  testCaseId    String?
+  status        FixStatus  @default(PENDING)
+  riskLevel     RiskLevel?
+  diagnosis     String?
+  fixSummary    String?
+  modifiedFiles Json?
+  beforeVersion Int?
+  afterVersion  Int?
+  createdAt     DateTime   @default(now())
+  completedAt   DateTime?
+  project       Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
 
 model AuditLog {
-  id        String      @id @default(uuid())
-  userId    String?
-  action    AuditAction
-  entity    String
-  entityId  String?
-  details   Json?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime    @default(now())
+  id          String   @id @default(uuid())
+  userId      String?
+  projectId   String?
+  action      String
+  resource    String
+  resourceId  String?
+  details     Json?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([action])
-  @@index([entity])
   @@index([createdAt])
-  @@map("audit_logs")
+  @@index([userId])
+  @@index([projectId])
 }
 
 model SystemConfig {
@@ -205,356 +304,5 @@ model SystemConfig {
   key         String   @unique
   value       Json
   description String?
-  isPublic    Boolean  @default(false)
-  createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  @@map("system_configs")
-}
-
-// ==========================================
-// Project Management Models
-// ==========================================
-
-model Project {
-  id          String        @id @default(uuid())
-  code        String        @unique
-  name        String
-  description String?
-  status      ProjectStatus @default(PLANNING)
-  startDate   DateTime?
-  endDate     DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  // Relations
-  ownerId      String
-  owner        User            @relation("ProjectOwner", fields: [ownerId], references: [id])
-  members      ProjectMember[]
-  requirements Requirement[]
-  sprints      Sprint[]
-  tasks        Task[]
-  bugs         Bug[]
-  artifacts    Artifact[]
-  documents    Document[]
-  pipelines    Pipeline[]
-  milestones   Milestone[]
-
-  @@index([status])
-  @@index([code])
-  @@map("projects")
-}
-
-model ProjectMember {
-  id        String   @id @default(uuid())
-  projectId String
-  userId    String
-  joinedAt  DateTime @default(now())
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([projectId, userId])
-  @@index([projectId])
-  @@index([userId])
-  @@map("project_members")
-}
-
-model Milestone {
-  id          String        @id @default(uuid())
-  projectId   String
-  name        String
-  description String?
-  dueDate     DateTime
-  status      ProjectStatus @default(PLANNING)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@index([projectId])
-  @@index([dueDate])
-  @@map("milestones")
-}
-
-// ==========================================
-// Requirement Management Models
-// ==========================================
-
-model Requirement {
-  id          String            @id @default(uuid())
-  projectId   String
-  code        String
-  title       String
-  description String?
-  type        RequirementType   @default(FUNCTIONAL)
-  status      RequirementStatus @default(DRAFT)
-  priority    Priority          @default(MEDIUM)
-  parentId    String?
-  tags        String[]
-  metadata    Json?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-
-  // Relations
-  project  Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  parent   Requirement?  @relation("RequirementTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children Requirement[] @relation("RequirementTree")
-  tasks    Task[]
-  bugs     Bug[]
-
-  @@unique([projectId, code])
-  @@index([projectId])
-  @@index([status])
-  @@index([type])
-  @@map("requirements")
-}
-
-// ==========================================
-// Sprint & Task Management Models
-// ==========================================
-
-model Sprint {
-  id          String      @id @default(uuid())
-  projectId   String
-  name        String
-  goal        String?
-  status      SprintStatus @default(PLANNING)
-  startDate   DateTime
-  endDate     DateTime
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  // Relations
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  tasks   Task[]
-
-  @@index([projectId])
-  @@index([status])
-  @@map("sprints")
-}
-
-model Task {
-  id          String   @id @default(uuid())
-  projectId   String
-  sprintId    String?
-  requirementId String?
-  title       String
-  description String?
-  type        TaskType @default(DEVELOPMENT)
-  status      TaskStatus @default(TODO)
-  priority    Priority @default(MEDIUM)
-  storyPoints Int?
-  estimatedHours Int?
-  actualHours    Int?
-  tags        String[]
-  metadata    Json?
-  createdBy   String
-  assigneeId  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  startedAt   DateTime?
-  completedAt DateTime?
-
-  // Relations
-  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sprint      Sprint?      @relation(fields: [sprintId], references: [id], onDelete: SetNull)
-  requirement Requirement? @relation(fields: [requirementId], references: [id], onDelete: SetNull)
-  creator     User         @relation("TaskCreator", fields: [createdBy], references: [id])
-  assignee    User?        @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  comments    Comment[]
-  bugs        Bug[]
-
-  @@index([projectId])
-  @@index([sprintId])
-  @@index([status])
-  @@index([assigneeId])
-  @@map("tasks")
-}
-
-// ==========================================
-// Bug/Issue Management Models
-// ==========================================
-
-model Bug {
-  id          String   @id @default(uuid())
-  projectId   String
-  taskId      String?
-  requirementId String?
-  title       String
-  description String?
-  severity    BugSeverity @default(MINOR)
-  status      BugStatus   @default(NEW)
-  priority    Priority    @default(MEDIUM)
-  stepsToReproduce String?
-  environment String?
-  tags        String[]
-  metadata    Json?
-  reportedBy  String
-  assigneeId  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  resolvedAt  DateTime?
-  verifiedAt  DateTime?
-
-  // Relations
-  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  task        Task?        @relation(fields: [taskId], references: [id], onDelete: SetNull)
-  requirement Requirement? @relation(fields: [requirementId], references: [id], onDelete: SetNull)
-  reporter    User         @relation("BugReporter", fields: [reportedBy], references: [id])
-  assignee    User?        @relation("BugAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  comments    Comment[]
-
-  @@index([projectId])
-  @@index([status])
-  @@index([severity])
-  @@index([assigneeId])
-  @@map("bugs")
-}
-
-// ==========================================
-// Comment Model (Polymorphic via entityType/entityId)
-// ==========================================
-
-model Comment {
-  id         String   @id @default(uuid())
-  entityType String   // 'task', 'bug', 'requirement', 'document'
-  entityId   String
-  content    String
-  authorId   String
-  parentId   String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  author User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parent Comment?    @relation("CommentThread", fields: [parentId], references: [id], onDelete: SetNull)
-  replies Comment[]  @relation("CommentThread")
-
-  @@index([entityType, entityId])
-  @@index([authorId])
-  @@index([parentId])
-  @@map("comments")
-}
-
-// ==========================================
-// Artifact Management Models
-// ==========================================
-
-model Artifact {
-  id          String         @id @default(uuid())
-  projectId   String
-  name        String
-  version     String         @default("1.0.0")
-  type        ArtifactType   @default(DOCUMENT)
-  status      ArtifactStatus @default(DRAFT)
-  description String?
-  fileUrl     String?
-  fileSize    Int?
-  checksum    String?
-  tags        String[]
-  metadata    Json?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  publishedAt DateTime?
-
-  // Relations
-  project Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  versions ArtifactVersion[]
-
-  @@unique([projectId, name, version])
-  @@index([projectId])
-  @@index([type])
-  @@index([status])
-  @@map("artifacts")
-}
-
-model ArtifactVersion {
-  id          String   @id @default(uuid())
-  artifactId  String
-  version     String
-  fileUrl     String
-  fileSize    Int?
-  checksum    String?
-  changeNotes String?
-  createdAt   DateTime @default(now())
-  createdBy   String?
-
-  artifact Artifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
-
-  @@unique([artifactId, version])
-  @@index([artifactId])
-  @@map("artifact_versions")
-}
-
-// ==========================================
-// Document Management Model
-// ==========================================
-
-model Document {
-  id          String         @id @default(uuid())
-  projectId   String?
-  title       String
-  slug        String         @unique
-  content     String?
-  status      DocumentStatus @default(DRAFT)
-  tags        String[]
-  authorId    String
-  metadata    Json?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  publishedAt DateTime?
-
-  // Relations
-  project Project @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  author  User    @relation("DocumentAuthor", fields: [authorId], references: [id])
-
-  @@index([projectId])
-  @@index([status])
-  @@index([authorId])
-  @@map("documents")
-}
-
-// ==========================================
-// CI/CD Pipeline Models
-// ==========================================
-
-model Pipeline {
-  id          String     @id @default(uuid())
-  projectId   String
-  name        String
-  description String?
-  config      Json?      // pipeline configuration (stages, steps, etc.)
-  isActive    Boolean    @default(true)
-  triggerOn   String[]   // push, pr, schedule, manual
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  // Relations
-  project Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  runs    PipelineRun[]
-
-  @@index([projectId])
-  @@map("pipelines")
-}
-
-model PipelineRun {
-  id          String         @id @default(uuid())
-  pipelineId  String
-  status      PipelineStatus @default(PENDING)
-  branch      String?
-  commitSha   String?
-  triggerType String         @default("manual")
-  startedAt   DateTime?
-  completedAt DateTime?
-  duration    Int?           // milliseconds
-  logUrl      String?
-  results     Json?
-  createdAt   DateTime       @default(now())
-
-  pipeline Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
-
-  @@index([pipelineId])
-  @@index([status])
-  @@index([createdAt])
-  @@map("pipeline_runs")
 }

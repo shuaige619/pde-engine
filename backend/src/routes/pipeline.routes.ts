@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { PipelineController } from "../controllers/pipeline.controller";
+import pipelineController from "../controllers/pipeline.controller";
 
 const router = Router();
-const controller = new PipelineController();
+const controller = pipelineController;
 
 /**
  * @route   POST /api/v1/pipelines

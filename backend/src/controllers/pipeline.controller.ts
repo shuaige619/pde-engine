@@ -209,3 +209,6 @@ export class PipelineController {
     }
   };
 }
+
+
+export default new PipelineController();

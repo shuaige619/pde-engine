@@ -207,3 +207,6 @@ export class ArtifactController {
     }
   };
 }
+
+
+export default new ArtifactController();

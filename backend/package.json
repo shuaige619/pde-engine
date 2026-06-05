@@ -1,7 +1,7 @@
 {
   "name": "pde-engine-backend",
   "version": "1.0.0",
-  "description": "PDE Engine Backend API - Production-Development-Engine Integration Platform",
+  "description": "PDE Engine Backend API",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -10,22 +10,11 @@
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset --force && tsx prisma/seed.ts",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
-    "typecheck": "tsc --noEmit"
+    "db:studio": "prisma studio"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
-  "keywords": [
-    "pde",
-    "engine",
-    "product-development",
-    "integration"
-  ],
-  "license": "MIT",
   "dependencies": {
     "express": "^4.19.2",
     "cors": "^2.8.5",
@@ -52,11 +41,9 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/multer": "^1.4.11",
     "@types/amqplib": "^0.10.5",
-    "@types/node": "^20.14.0",
-    "eslint": "^9.7.0"
+    "@types/node": "^20.14.0"
   },
   "engines": {
-    "node": ">=20.0.0",
-    "pnpm": ">=9.0.0"
+    "node": ">=20.0.0"
   }
 }

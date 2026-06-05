@@ -6,22 +6,18 @@ networks:
 
 volumes:
   postgres_data:
-    driver: local
   redis_data:
-    driver: local
-  rabbitmq_data:
-    driver: local
 
 services:
-  # PostgreSQL 16 - 主数据库
+  # PostgreSQL 16
   postgres:
     image: postgres:16-alpine
     container_name: pde-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-pde_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pde_password}
-      POSTGRES_DB: ${POSTGRES_DB:-pde_engine}
+      POSTGRES_USER: pde_user
+      POSTGRES_PASSWORD: pde_password
+      POSTGRES_DB: pde_engine
     ports:
       - "5432:5432"
     volumes:
@@ -29,23 +25,17 @@ services:
     networks:
       - pde-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U pde_user -d pde_engine"]
+      interval: 5s
       timeout: 5s
-      retries: 5
-      start_period: 10s
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+      retries: 10
 
-  # Redis 7 - 缓存/会话/队列
+  # Redis 7
   redis:
     image: redis:7-alpine
     container_name: pde-redis
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD:-pde_redis_pass}
+    command: redis-server --requirepass pde_redis_pass
     ports:
       - "6379:6379"
     volumes:
@@ -53,45 +43,12 @@ services:
     networks:
       - pde-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      test: ["CMD", "redis-cli", "-a", "pde_redis_pass", "ping"]
+      interval: 5s
       timeout: 5s
-      retries: 5
-      start_period: 5s
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+      retries: 10
 
-  # RabbitMQ 3.12 - 消息队列
-  rabbitmq:
-    image: rabbitmq:3.12-management-alpine
-    container_name: pde-rabbitmq
-    restart: unless-stopped
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-pde_mq}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-pde_mq_pass}
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    networks:
-      - pde-network
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # Backend API 服务
+  # Backend API
   backend:
     build:
       context: ./backend
@@ -102,11 +59,11 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-pde_user}:${POSTGRES_PASSWORD:-pde_password}@postgres:5432/${POSTGRES_DB:-pde_engine}
-      REDIS_URL: redis://:${REDIS_PASSWORD:-pde_redis_pass}@redis:6379
-      RABBITMQ_URL: amqp://${RABBITMQ_USER:-pde_mq}:${RABBITMQ_PASSWORD:-pde_mq_pass}@rabbitmq:5672
-      JWT_SECRET: ${JWT_SECRET:-pde_jwt_secret_key_change_in_production}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      DATABASE_URL: "postgresql://pde_user:pde_password@postgres:5432/pde_engine?schema=public"
+      REDIS_URL: "redis://:pde_redis_pass@redis:6379"
+      JWT_SECRET: "pde_jwt_secret_change_in_production"
+      JWT_EXPIRES_IN: "7d"
+      CORS_ORIGIN: "*"
     ports:
       - "3000:3000"
     volumes:
@@ -120,68 +77,45 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
 
-  # Frontend 用户控制台 (React)
+  # Frontend User Console (React)
   frontend-user:
     build:
-      context: ./frontend/user
+      context: ./frontend-user
       dockerfile: Dockerfile
       target: development
     container_name: pde-frontend-user
     restart: unless-stopped
     environment:
       NODE_ENV: development
-      VITE_API_BASE_URL: http://localhost:3000
+      VITE_API_BASE_URL: "http://localhost:3000"
     ports:
       - "5173:5173"
     volumes:
-      - ./frontend/user:/app
+      - ./frontend-user:/app
       - /app/node_modules
     networks:
       - pde-network
     depends_on:
       - backend
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
 
-  # Frontend 管理后台 (Vue3)
+  # Frontend Admin (Vue3)
   frontend-admin:
     build:
-      context: ./frontend/admin
+      context: ./frontend-admin
       dockerfile: Dockerfile
       target: development
     container_name: pde-frontend-admin
     restart: unless-stopped
     environment:
       NODE_ENV: development
-      VITE_API_BASE_URL: http://localhost:3000
+      VITE_API_BASE_URL: "http://localhost:3000"
     ports:
       - "5174:5174"
     volumes:
-      - ./frontend/admin:/app
+      - ./frontend-admin:/app
       - /app/node_modules
     networks:
       - pde-network
     depends_on:
       - backend
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"

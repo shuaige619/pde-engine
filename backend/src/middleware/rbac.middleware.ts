@@ -5,7 +5,7 @@
 
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../types';
-import { ForbiddenError, UnauthorizedError } from '../utils/error';
+import { ForbiddenError, UnauthorizedError } from '../utils/errors';
 import logger from '../utils/logger';
 
 /** 预定义角色层级（数值越大权限越高） */

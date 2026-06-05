@@ -1,0 +1,296 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  OWNER
+  DEVELOPER
+  PRODUCT
+  DESIGNER
+  TESTER
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum ProjectStatus {
+  DRAFT
+  RUNNING
+  PAUSED
+  FAILED
+  COMPLETED
+  PENDING_ACCEPTANCE
+  ACCEPTED
+  ARCHIVED
+}
+
+enum Platform {
+  WEB
+  APP
+  UNIAPP
+  CHROME_EXTENSION
+  BACKEND_API
+}
+
+enum CodeSource {
+  TEMPLATE
+  GIT
+}
+
+enum TestMode {
+  LOCAL
+  BROWSER
+  UPLOAD
+}
+
+enum ProjectMemberRole {
+  OWNER
+  MEMBER
+}
+
+enum PipelineStatus {
+  PENDING
+  RUNNING
+  PAUSED
+  FAILED
+  COMPLETED
+}
+
+enum StageStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+enum NodeStatus {
+  PENDING
+  WAITING
+  RUNNING
+  COMPLETED
+  FAILED
+  SKIPPED
+  WAITING_USER
+}
+
+enum ArtifactType {
+  PRD
+  UI_DESIGN
+  TECH_DESIGN
+  TEST_PLAN
+  CODE_FRONTEND
+  CODE_BACKEND
+  TEST_REPORT
+  FIX_PATCH
+  ACCEPTANCE
+}
+
+enum TestReportStatus {
+  PENDING
+  PARSING
+  PASSED
+  FAILED
+  FIXING
+  REGRESSION
+}
+
+enum TestCaseStatus {
+  PASSED
+  FAILED
+  SKIPPED
+}
+
+enum FixStatus {
+  PENDING
+  DIAGNOSING
+  READY
+  APPLYING
+  COMPLETED
+  FAILED
+  ROLLBACK
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  password  String
+  name      String
+  role      UserRole   @default(USER)
+  status    UserStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  projects  ProjectMember[]
+}
+
+model Project {
+  id           String        @id @default(uuid())
+  name         String
+  description  String?
+  status       ProjectStatus @default(DRAFT)
+  currentStage String?
+  platform     Platform
+  codeSource   CodeSource
+  gitConfig    String?       @default("{}")
+  figmaBinding String?       @default("{}")
+  testMode     TestMode      @default(LOCAL)
+  createdById  String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  members      ProjectMember[]
+  pipeline     PipelineInstance?
+  artifacts    Artifact[]
+  testReports  TestReport[]
+  fixRecords   FixRecord[]
+  auditLogs    AuditLog[]
+}
+
+model ProjectMember {
+  id        String           @id @default(uuid())
+  projectId String
+  userId    String
+  role      ProjectMemberRole @default(MEMBER)
+  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+model PipelineInstance {
+  id          String         @id @default(uuid())
+  projectId   String         @unique
+  status      PipelineStatus @default(PENDING)
+  currentNode String?
+  progress    Float          @default(0)
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stages      Stage[]
+  nodes       NodeExecution[]
+}
+
+model Stage {
+  id          String      @id @default(uuid())
+  pipelineId  String
+  name        String
+  order       Int
+  status      StageStatus @default(PENDING)
+  startedAt   DateTime?
+  completedAt DateTime?
+  pipeline    PipelineInstance @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  nodes       NodeExecution[]
+}
+
+model NodeExecution {
+  id          String     @id @default(uuid())
+  pipelineId  String
+  stageId     String?
+  name        String
+  type        String
+  status      NodeStatus @default(PENDING)
+  input       String?    @default("{}")
+  output      String?    @default("{}")
+  logs        String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  retryCount  Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  pipeline    PipelineInstance @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  stage       Stage?     @relation(fields: [stageId], references: [id])
+}
+
+model Artifact {
+  id          String       @id @default(uuid())
+  projectId   String
+  name        String
+  type        ArtifactType
+  stage       String
+  version     Int          @default(1)
+  storagePath String
+  metadata    String?      @default("{}")
+  isMarked    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model TestReport {
+  id           String           @id @default(uuid())
+  projectId    String
+  status       TestReportStatus @default(PENDING)
+  totalCases   Int              @default(0)
+  passedCases  Int              @default(0)
+  failedCases  Int              @default(0)
+  skippedCases Int              @default(0)
+  reportData   String?          @default("{}")
+  createdAt    DateTime         @default(now())
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  testCases    TestCase[]
+}
+
+model TestCase {
+  id         String         @id @default(uuid())
+  reportId   String
+  name       String
+  status     TestCaseStatus
+  duration   Int?
+  errorMsg   String?
+  stackTrace String?
+  createdAt  DateTime       @default(now())
+  report     TestReport     @relation(fields: [reportId], references: [id], onDelete: Cascade)
+}
+
+model FixRecord {
+  id            String     @id @default(uuid())
+  projectId     String
+  testCaseId    String?
+  status        FixStatus  @default(PENDING)
+  riskLevel     RiskLevel?
+  diagnosis     String?
+  fixSummary    String?
+  modifiedFiles String?    @default("{}")
+  beforeVersion Int?
+  afterVersion  Int?
+  createdAt     DateTime   @default(now())
+  completedAt   DateTime?
+  project       Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  projectId  String?
+  action     String
+  resource   String
+  resourceId String?
+  details    String?  @default("{}")
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+}
+
+model SystemConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String   @default("{}")
+  description String?
+  updatedAt   DateTime @updatedAt
+}

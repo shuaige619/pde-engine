@@ -19,7 +19,7 @@ services:
       POSTGRES_PASSWORD: pde_password
       POSTGRES_DB: pde_engine
     ports:
-      - "5432:5432"
+      - "5433:5432"    # 使用5433避免冲突
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -37,7 +37,7 @@ services:
     restart: unless-stopped
     command: redis-server --requirepass pde_redis_pass
     ports:
-      - "6379:6379"
+      - "6380:6379"    # 使用6380避免冲突
     volumes:
       - redis_data:/data
     networks:

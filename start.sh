@@ -38,10 +38,10 @@ echo "[2/6] 启动基础设施 (PostgreSQL + Redis)..."
 cd "$PROJECT_DIR"
 docker-compose up -d postgres redis
 
-# 等待PostgreSQL就绪
+# 等待PostgreSQL就绪（端口5433）
 echo "⏳ 等待 PostgreSQL 就绪..."
 for i in {1..30}; do
-    if docker-compose exec -T postgres pg_isready -U pde_user -d pde_engine >/dev/null 2>&1; then
+    if docker-compose exec -T postgres pg_isready -U pde_user -d pde_engine -p 5432 >/dev/null 2>&1; then
         echo "✅ PostgreSQL 就绪"
         break
     fi

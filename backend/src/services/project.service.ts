@@ -8,7 +8,7 @@ import {
   PaginatedResult,
   isValidTransition,
 } from "../types/project.types";
-import { Project, ProjectStatus, Prisma } from "@prisma/client";
+import { CodeSource, Platform, Project, ProjectStatus, Prisma, TestMode } from "@prisma/client";
 import { PipelineService } from "./pipeline.service";
 
 const logger = createLogger("ProjectService");
@@ -43,7 +43,7 @@ export class ProjectService {
     }
 
     if (platform) {
-      where.platform = platform;
+      where.platform = platform as Platform;
     }
 
     if (search) {
@@ -101,6 +101,9 @@ export class ProjectService {
         pipeline: {
           include: {
             nodes: {
+              orderBy: { createdAt: "asc" },
+            },
+            stages: {
               orderBy: { order: "asc" },
             },
           },
@@ -124,8 +127,8 @@ export class ProjectService {
    */
   async create(data: CreateProjectInput): Promise<Project> {
     // 验证平台类型
-    const validPlatforms = ["web", "ios", "android", "wechat"];
-    if (!validPlatforms.includes(data.platform)) {
+    const validPlatforms = Object.values(Platform);
+    if (!validPlatforms.includes(data.platform as Platform)) {
       throw new ValidationError(
         `Invalid platform: ${data.platform}. Must be one of: ${validPlatforms.join(", ")}`
       );
@@ -144,9 +147,13 @@ export class ProjectService {
       data: {
         name: data.name,
         description: data.description,
-        platform: data.platform,
-        config: data.config ? (data.config as Prisma.JsonObject) : Prisma.JsonNull,
-        status: "DRAFT",
+        platform: data.platform as Platform,
+        codeSource: data.codeSource || CodeSource.TEMPLATE,
+        gitConfig: data.gitUrl ? { url: data.gitUrl } : Prisma.JsonNull,
+        figmaBinding: data.figmaUrl ? { url: data.figmaUrl } : Prisma.JsonNull,
+        testMode: data.testMode || TestMode.LOCAL,
+        createdById: data.createdById,
+        status: ProjectStatus.DRAFT,
       },
     });
 
@@ -179,8 +186,15 @@ export class ProjectService {
     const updateData: Prisma.ProjectUpdateInput = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined) updateData.description = data.description;
-    if (data.platform !== undefined) updateData.platform = data.platform;
-    if (data.config !== undefined) updateData.config = data.config as Prisma.JsonObject;
+    if (data.platform !== undefined) updateData.platform = data.platform as Platform;
+    if (data.codeSource !== undefined) updateData.codeSource = data.codeSource;
+    if (data.gitUrl !== undefined) {
+      updateData.gitConfig = data.gitUrl ? { url: data.gitUrl } : Prisma.JsonNull;
+    }
+    if (data.figmaUrl !== undefined) {
+      updateData.figmaBinding = data.figmaUrl ? { url: data.figmaUrl } : Prisma.JsonNull;
+    }
+    if (data.testMode !== undefined) updateData.testMode = data.testMode;
     if (data.status !== undefined) updateData.status = data.status;
 
     const updated = await prisma.project.update({
@@ -228,8 +242,8 @@ export class ProjectService {
       throw new ConflictError("Project pipeline is already running");
     }
 
-    // 状态机校验：只有 READY 或 PAUSED 或 FAILED 状态可以启动
-    const canStartFrom: ProjectStatus[] = ["READY", "PAUSED", "FAILED"];
+    // 状态机校验：草稿、暂停、失败状态可以启动或重启
+    const canStartFrom: ProjectStatus[] = [ProjectStatus.DRAFT, ProjectStatus.PAUSED, ProjectStatus.FAILED];
     if (!canStartFrom.includes(project.status)) {
       throw new PipelineError(
         `Cannot start pipeline from status: ${project.status}. Must be one of: ${canStartFrom.join(", ")}`

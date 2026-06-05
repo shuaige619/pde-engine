@@ -10,11 +10,13 @@ import Login from '@/pages/Login';
 import Home from '@/pages/Home';
 import ProjectList from '@/pages/ProjectList';
 import ProjectNew from '@/pages/ProjectNew';
-import ProjectDetail from '@/pages/ProjectDetail';
 import ProjectOverview from '@/pages/ProjectOverview';
 import ProjectPipeline from '@/pages/ProjectPipeline';
 import ProjectArtifacts from '@/pages/ProjectArtifacts';
 import Profile from '@/pages/Profile';
+import CreativeIsland from '@/pages/CreativeIsland';
+import LandingPage from '@/pages/LandingPage';
+import Studio from '@/pages/Studio';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -36,8 +38,11 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/v2" element={<LandingPage />} />
             <Route element={<AuthGuard><MainLayout /></AuthGuard>}>
               <Route path="/" element={<Home />} />
+              <Route path="/island" element={<CreativeIsland />} />
+              <Route path="/studio/:id" element={<Studio />} />
               <Route path="/projects" element={<ProjectList />} />
               <Route path="/projects/new" element={<ProjectNew />} />
               <Route path="/projects/:id" element={<ProjectLayout />}>

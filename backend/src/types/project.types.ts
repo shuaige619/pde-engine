@@ -1,7 +1,7 @@
-import { ProjectStatus } from "@prisma/client";
+import { CodeSource, ProjectStatus, TestMode } from "@prisma/client";
 
 // Platform type
-export type Platform = "web" | "ios" | "android" | "wechat";
+export type Platform = "WEB" | "APP" | "UNIAPP" | "CHROME_EXTENSION" | "BACKEND_API";
 
 // ==================== 输入类型 ====================
 
@@ -9,14 +9,21 @@ export interface CreateProjectInput {
   name: string;
   description?: string;
   platform: Platform;
-  config?: Record<string, unknown>;
+  codeSource?: CodeSource;
+  gitUrl?: string;
+  figmaUrl?: string;
+  testMode?: TestMode;
+  createdById: string;
 }
 
 export interface UpdateProjectInput {
   name?: string;
   description?: string;
   platform?: Platform;
-  config?: Record<string, unknown>;
+  codeSource?: CodeSource;
+  gitUrl?: string;
+  figmaUrl?: string;
+  testMode?: TestMode;
   status?: ProjectStatus;
 }
 
@@ -48,13 +55,13 @@ export interface PaginatedResult<T> {
 // ==================== 状态机 ====================
 
 export const PROJECT_STATUS_TRANSITIONS: Record<ProjectStatus, ProjectStatus[]> = {
-  DRAFT: [ProjectStatus.CONFIGURING, ProjectStatus.ARCHIVED],
-  CONFIGURING: [ProjectStatus.READY, ProjectStatus.DRAFT, ProjectStatus.ARCHIVED],
-  READY: [ProjectStatus.RUNNING, ProjectStatus.CONFIGURING, ProjectStatus.ARCHIVED],
+  DRAFT: [ProjectStatus.RUNNING, ProjectStatus.ARCHIVED],
   RUNNING: [ProjectStatus.PAUSED, ProjectStatus.COMPLETED, ProjectStatus.FAILED],
   PAUSED: [ProjectStatus.RUNNING, ProjectStatus.FAILED, ProjectStatus.ARCHIVED],
-  COMPLETED: [ProjectStatus.ARCHIVED],
-  FAILED: [ProjectStatus.CONFIGURING, ProjectStatus.RUNNING, ProjectStatus.ARCHIVED],
+  FAILED: [ProjectStatus.RUNNING, ProjectStatus.ARCHIVED],
+  COMPLETED: [ProjectStatus.PENDING_ACCEPTANCE, ProjectStatus.ARCHIVED],
+  PENDING_ACCEPTANCE: [ProjectStatus.ACCEPTED, ProjectStatus.FAILED, ProjectStatus.ARCHIVED],
+  ACCEPTED: [ProjectStatus.ARCHIVED],
   ARCHIVED: [],
 };
 
@@ -74,7 +81,6 @@ export interface ProjectResponse {
   description: string | null;
   platform: string;
   status: ProjectStatus;
-  config: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
   pipeline?: { id: string; status: string; progress: number } | null;

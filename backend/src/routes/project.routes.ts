@@ -1,8 +1,11 @@
 import { Router } from "express";
 import projectController from "../controllers/project.controller";
+import { authenticate } from "../middleware/auth.middleware";
 
 const router = Router();
 const controller = projectController;
+
+router.use(authenticate);
 
 /**
  * @route   GET /api/v1/projects
@@ -42,12 +45,14 @@ router.delete("/:id", controller.delete);
  * @desc    启动项目流程（创建12阶段流程实例）
  */
 router.post("/:id/pipeline/start", controller.startPipeline);
+router.post("/:id/start", controller.startPipeline);
 
 /**
  * @route   POST /api/v1/projects/:id/pipeline/pause
  * @desc    暂停项目流程
  */
 router.post("/:id/pipeline/pause", controller.pausePipeline);
+router.post("/:id/pause", controller.pausePipeline);
 
 /**
  * @route   POST /api/v1/projects/:id/pipeline/resume

@@ -22,6 +22,15 @@ export class AppError extends Error {
     this.details = details;
     Object.setPrototypeOf(this, AppError.prototype);
   }
+
+  toJSON(): Record<string, unknown> {
+    return {
+      message: this.message,
+      statusCode: this.statusCode,
+      code: this.code,
+      details: this.details,
+    };
+  }
 }
 
 export class NotFoundError extends AppError {

@@ -26,7 +26,7 @@ export default function ProjectList() {
     { title: '状态', dataIndex: 'status', key: 'status', render: (s: string) => <StatusBadge status={s} /> },
     { title: '平台', dataIndex: 'platform', key: 'platform', render: (p: string) => <Tag>{platformLabels[p] || p}</Tag> },
     { title: '当前阶段', dataIndex: 'currentStage', key: 'stage', render: (s?: string) => s || '-' },
-    { title: '进度', dataIndex: 'progress', key: 'progress', render: (p: number) => `${Math.round(p)}%` },
+    { title: '进度', dataIndex: 'progress', key: 'progress', render: (p?: number) => `${Math.round(p ?? 0)}%` },
     { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', render: (d: string) => new Date(d).toLocaleString() },
     { title: '操作', key: 'action', render: (_: unknown, record: Project) => (
       <Button type="link" onClick={() => navigate(`/projects/${record.id}`)}>查看</Button>

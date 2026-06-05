@@ -4,7 +4,6 @@ import { Steps, Form, Input, Select, Button, Card, Radio, message } from 'antd';
 import { projectApi } from '@/api/projectApi';
 import type { CreateProjectInput } from '@/types';
 
-const { Step } = Steps;
 const { TextArea } = Input;
 const platformOptions = [
   { value: 'WEB', label: 'Web' },
@@ -19,6 +18,7 @@ export default function ProjectNew() {
   const [current, setCurrent] = useState(0);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState<Partial<CreateProjectInput>>({});
 
   const steps = [
     { title: '产品信息', content: (
@@ -70,21 +70,24 @@ export default function ProjectNew() {
     if (current < steps.length - 1) {
       try {
         await form.validateFields();
+        setFormData((prev) => ({ ...prev, ...form.getFieldsValue(true) }));
         setCurrent(current + 1);
       } catch { /* validation failed */ }
     } else {
       setLoading(true);
       try {
-        const values = await form.validateFields();
+        const values = { ...formData, ...form.getFieldsValue(true) };
         const data: CreateProjectInput = {
-          name: values.name,
+          name: values.name!,
           description: values.description,
-          platform: values.platform,
-          codeSource: values.codeSource,
+          platform: values.platform!,
+          codeSource: values.codeSource || 'TEMPLATE',
           gitUrl: values.gitUrl,
           figmaUrl: values.figmaUrl,
+          testMode: values.testMode,
         };
         const project = await projectApi.createProject(data);
+        await projectApi.startPipeline(project.id);
         message.success('项目创建成功');
         navigate(`/projects/${project.id}`);
       } catch {

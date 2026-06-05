@@ -1,6 +1,6 @@
 import { Layout, Menu, Avatar, Dropdown } from 'antd';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { HomeOutlined, ProjectOutlined, SettingOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, HomeOutlined, LogoutOutlined, ProjectOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/stores/authStore';
 
 const { Sider, Header, Content } = Layout;
@@ -12,6 +12,7 @@ export default function MainLayout() {
 
   const menuItems = [
     { key: '/', icon: <HomeOutlined />, label: '首页' },
+    { key: '/island', icon: <AppstoreOutlined />, label: '造物岛' },
     { key: '/projects', icon: <ProjectOutlined />, label: '项目列表' },
     { key: '/profile', icon: <SettingOutlined />, label: '个人设置' },
   ];
@@ -29,7 +30,7 @@ export default function MainLayout() {
         </div>
         <Menu
           mode="inline"
-          selectedKeys={[location.pathname === '/' ? '/' : location.pathname]}
+          selectedKeys={[location.pathname.startsWith('/studio') ? '/island' : location.pathname === '/' ? '/' : location.pathname]}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
         />

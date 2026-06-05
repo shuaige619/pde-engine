@@ -3,11 +3,11 @@
  * 提供 JWT 签名/验证、密码哈希/比较、ID 生成等功能
  */
 
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { randomUUID } from 'crypto';
 import config from '../config';
-import { UnauthorizedError } from './error';
+import { UnauthorizedError } from './errors';
 
 // ─── 密码哈希 ──────────────────────────────────────────────────
 

@@ -10,7 +10,7 @@ export const useUserStore = defineStore('user', () => {
 
   const login = async (email: string, password: string) => {
     const res: any = await loginApi({ email, password })
-    if (res.code === 0 || res.code === 200) {
+    if (res.success === true || res.code === 0 || res.code === 200) {
       const data = res.data
       token.value = data.token
       localStorage.setItem('admin_token', data.token)

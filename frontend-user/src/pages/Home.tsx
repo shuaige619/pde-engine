@@ -1,5 +1,5 @@
-import { Row, Col, Card, Statistic, List, Button } from 'antd';
-import { ProjectOutlined, PlayCircleOutlined, ClockCircleOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { Row, Col, Card, Statistic, List, Button, Space } from 'antd';
+import { AppstoreOutlined, CheckCircleOutlined, ClockCircleOutlined, PlayCircleOutlined, ProjectOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { projectApi } from '@/api/projectApi';
@@ -18,6 +18,17 @@ export default function Home() {
 
   return (
     <div>
+      <Card className="home-v2-banner" style={{ marginBottom: 24 }}>
+        <div>
+          <h2>用一句话，创造你的产品</h2>
+          <p>V2 造物岛创作平台已恢复，可以从创意产物网格进入实时预览和 AI 工作室。</p>
+        </div>
+        <Space>
+          <Button icon={<ThunderboltOutlined />} onClick={() => navigate('/v2')}>查看 V2 首页</Button>
+          <Button type="primary" icon={<AppstoreOutlined />} onClick={() => navigate('/island')}>进入造物岛</Button>
+        </Space>
+      </Card>
+
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}><Card><Statistic title="项目总数" value={projects.length} prefix={<ProjectOutlined />} /></Card></Col>
         <Col span={6}><Card><Statistic title="运行中" value={running.length} prefix={<PlayCircleOutlined />} valueStyle={{ color: '#1890ff' }} /></Card></Col>

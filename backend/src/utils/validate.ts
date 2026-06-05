@@ -4,7 +4,7 @@
  */
 
 import { ZodSchema, ZodError, ZodRawShape, z } from 'zod';
-import { ValidationError } from './error';
+import { ValidationError } from './errors';
 
 /**
  * 将 ZodError 格式化为字段级错误详情

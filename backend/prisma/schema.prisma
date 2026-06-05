@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -129,6 +129,21 @@ enum RiskLevel {
   LOW
   MEDIUM
   HIGH
+}
+
+enum CreationType {
+  WEBSITE
+  APP
+  MINIAPP
+  EXTENSION
+  LANDING
+}
+
+enum CreationStatus {
+  DESIGNING
+  DEVELOPING
+  PREVIEW
+  PUBLISHED
 }
 
 // ==========================================
@@ -293,6 +308,7 @@ model AuditLog {
   ip          String?
   userAgent   String?
   createdAt   DateTime @default(now())
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
   @@index([userId])
@@ -305,4 +321,34 @@ model SystemConfig {
   value       Json
   description String?
   updatedAt   DateTime @updatedAt
+}
+
+model Creation {
+  id           String         @id @default(uuid())
+  name         String
+  description  String?
+  type         CreationType   @default(WEBSITE)
+  status       CreationStatus @default(DESIGNING)
+  figmaUrl     String?
+  figmaFileKey String?
+  previewUrl   String?
+  code         String?
+  thumbnail    String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  messages     ChatMessage[]
+
+  @@index([type])
+  @@index([status])
+}
+
+model ChatMessage {
+  id         String   @id @default(uuid())
+  creationId String
+  role       String
+  content    String
+  createdAt  DateTime @default(now())
+  creation   Creation @relation(fields: [creationId], references: [id], onDelete: Cascade)
+
+  @@index([creationId])
 }

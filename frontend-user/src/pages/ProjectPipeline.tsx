@@ -1,4 +1,4 @@
-import { Card, Steps, Button, Space, Tag, message } from 'antd';
+import { Card, Steps, Button, Space, message } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { pipelineApi } from '@/api/pipelineApi';
 import { useProjectStore } from '@/stores/projectStore';
@@ -7,7 +7,7 @@ import StatusBadge from '@/components/StatusBadge';
 export default function ProjectPipeline() {
   const { currentProject } = useProjectStore();
   const queryClient = useQueryClient();
-  const pipelineId = currentProject?.id || '';
+  const pipelineId = currentProject?.pipeline?.id || '';
 
   const { data: nodes, isLoading } = useQuery({
     queryKey: ['nodes', pipelineId],

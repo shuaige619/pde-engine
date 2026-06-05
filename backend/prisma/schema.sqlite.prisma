@@ -127,6 +127,21 @@ enum RiskLevel {
   HIGH
 }
 
+enum CreationType {
+  WEBSITE
+  APP
+  MINIAPP
+  EXTENSION
+  LANDING
+}
+
+enum CreationStatus {
+  DESIGNING
+  DEVELOPING
+  PREVIEW
+  PUBLISHED
+}
+
 model User {
   id        String     @id @default(uuid())
   email     String     @unique
@@ -293,4 +308,34 @@ model SystemConfig {
   value       String   @default("{}")
   description String?
   updatedAt   DateTime @updatedAt
+}
+
+model Creation {
+  id           String         @id @default(uuid())
+  name         String
+  description  String?
+  type         CreationType   @default(WEBSITE)
+  status       CreationStatus @default(DESIGNING)
+  figmaUrl     String?
+  figmaFileKey String?
+  previewUrl   String?
+  code         String?
+  thumbnail    String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  messages     ChatMessage[]
+
+  @@index([type])
+  @@index([status])
+}
+
+model ChatMessage {
+  id         String   @id @default(uuid())
+  creationId String
+  role       String
+  content    String
+  createdAt  DateTime @default(now())
+  creation   Creation @relation(fields: [creationId], references: [id], onDelete: Cascade)
+
+  @@index([creationId])
 }

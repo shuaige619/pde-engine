@@ -3,7 +3,7 @@ import { User, UserStatus } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { generateToken, generateRefreshToken, verifyToken } from '../utils/jwt';
 import logger from '../utils/logger';
-import { BadRequestError, UnauthorizedError, ConflictError, NotFoundError } from '../utils/errors';
+import { UnauthorizedError, ConflictError, NotFoundError } from '../utils/errors';
 import {
   RegisterInput,
   LoginInput,
@@ -41,14 +41,6 @@ class AuthService {
       throw new ConflictError('Email already in use');
     }
 
-    // Check if username already exists
-    const existingUsername = await prisma.user.findUnique({
-      where: { username },
-    });
-    if (existingUsername) {
-      throw new ConflictError('Username already taken');
-    }
-
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -56,7 +48,6 @@ class AuthService {
     const user = await prisma.user.create({
       data: {
         email,
-        username,
         password: hashedPassword,
         name: name || username,
         status: UserStatus.ACTIVE,
@@ -68,9 +59,9 @@ class AuthService {
       data: {
         userId: user.id,
         action: 'REGISTER',
-        entity: 'User',
-        entityId: user.id,
-        details: { email: user.email, username: user.username },
+        resource: 'User',
+        resourceId: user.id,
+        details: { email: user.email, name: user.name },
       },
     });
 
@@ -119,19 +110,13 @@ class AuthService {
       throw new UnauthorizedError('Invalid email or password');
     }
 
-    // Update last login
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLogin: new Date() },
-    });
-
     // Create audit log
     await prisma.auditLog.create({
       data: {
         userId: user.id,
         action: 'LOGIN',
-        entity: 'User',
-        entityId: user.id,
+        resource: 'User',
+        resourceId: user.id,
         details: { email: user.email },
       },
     });
@@ -140,14 +125,14 @@ class AuthService {
 
     // Generate tokens
     const tokenPayload: TokenPayload = {
-      userId: updatedUser.id,
-      email: updatedUser.email,
-      role: updatedUser.role,
+      userId: user.id,
+      email: user.email,
+      role: user.role,
     };
     const token = generateToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
-    const safeUser = sanitizeUser(updatedUser);
+    const safeUser = sanitizeUser(user);
     return { user: safeUser, token, refreshToken };
   }
 
@@ -233,8 +218,8 @@ class AuthService {
         data: {
           userId: user.id,
           action: 'LOGOUT',
-          entity: 'User',
-          entityId: user.id,
+          resource: 'User',
+          resourceId: user.id,
           details: { email: user.email },
         },
       });

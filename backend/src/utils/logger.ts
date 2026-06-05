@@ -8,6 +8,8 @@ interface LogEntry {
   metadata?: Record<string, unknown>;
 }
 
+type LogMetadata = Record<string, unknown>;
+
 class Logger {
   private service: string;
 
@@ -15,7 +17,25 @@ class Logger {
     this.service = service;
   }
 
-  private log(level: LogLevel, message: string, metadata?: Record<string, unknown>): void {
+  private normalizeArgs(
+    first: string | LogMetadata,
+    second?: string | LogMetadata
+  ): { message: string; metadata?: LogMetadata } {
+    if (typeof first === "string") {
+      return {
+        message: first,
+        metadata: typeof second === "object" && second !== null ? second : undefined,
+      };
+    }
+
+    return {
+      message: typeof second === "string" ? second : "",
+      metadata: first,
+    };
+  }
+
+  private log(level: LogLevel, first: string | LogMetadata, second?: string | LogMetadata): void {
+    const { message, metadata } = this.normalizeArgs(first, second);
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -44,23 +64,36 @@ class Logger {
     );
   }
 
-  debug(message: string, metadata?: Record<string, unknown>): void {
+  debug(message: string | LogMetadata, metadata?: string | LogMetadata): void {
     this.log("debug", message, metadata);
   }
 
-  info(message: string, metadata?: Record<string, unknown>): void {
+  info(message: string | LogMetadata, metadata?: string | LogMetadata): void {
     this.log("info", message, metadata);
   }
 
-  warn(message: string, metadata?: Record<string, unknown>): void {
+  warn(message: string | LogMetadata, metadata?: string | LogMetadata): void {
     this.log("warn", message, metadata);
   }
 
-  error(message: string, metadata?: Record<string, unknown>): void {
+  error(message: string | LogMetadata, metadata?: string | LogMetadata): void {
     this.log("error", message, metadata);
+  }
+
+  fatal(message: string | LogMetadata, metadata?: string | LogMetadata): void {
+    this.log("error", message, metadata);
+  }
+
+  child(metadata: Record<string, unknown>): Logger {
+    const moduleName = typeof metadata.module === "string" ? metadata.module : "Child";
+    return new Logger(`${this.service}:${moduleName}`);
   }
 }
 
 export function createLogger(service: string): Logger {
   return new Logger(service);
 }
+
+const logger = createLogger("PDE");
+
+export default logger;

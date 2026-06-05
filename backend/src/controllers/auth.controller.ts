@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import authService from '../services/auth.service';
-import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { validateBody } from '../middleware/validate.middleware';
 import { RegisterInput, LoginInput } from '../types/auth.types';
 import logger from '../utils/logger';
@@ -115,9 +114,16 @@ class AuthController {
    * GET /api/auth/me
    */
   me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const authReq = req as AuthenticatedRequest;
-      const user = await authService.me(authReq.user.userId);
+      try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+        return;
+      }
+      const user = await authService.me(userId);
 
       res.status(200).json({
         success: true,
@@ -133,9 +139,16 @@ class AuthController {
    * POST /api/auth/logout
    */
   logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const authReq = req as AuthenticatedRequest;
-      await authService.logout(authReq.user.userId);
+      try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+        return;
+      }
+      await authService.logout(userId);
 
       res.status(200).json({
         success: true,

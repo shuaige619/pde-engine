@@ -36,12 +36,9 @@ export interface AuthResponse {
 export interface UserResponse {
   id: string;
   email: string;
-  username: string;
-  name: string | null;
-  avatar: string | null;
+  name: string;
   role: UserRole;
   status: UserStatus;
-  lastLogin: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

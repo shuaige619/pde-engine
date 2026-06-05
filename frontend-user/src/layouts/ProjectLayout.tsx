@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useParams, Outlet, useNavigate } from 'react-router-dom';
-import { Card, Tabs, Button, Tag, Space } from 'antd';
+import { Card, Tabs, Button, Tag, Space, message } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { projectApi } from '@/api/projectApi';
 import { useProjectStore } from '@/stores/projectStore';
@@ -16,11 +16,33 @@ export default function ProjectLayout() {
   const navigate = useNavigate();
   const { setCurrentProject } = useProjectStore();
 
-  const { data: project } = useQuery({
+  const { data: project, refetch } = useQuery({
     queryKey: ['project', id],
     queryFn: () => projectApi.getProject(id!),
     enabled: !!id,
   });
+
+  const handleStart = async () => {
+    if (!project) return;
+    try {
+      await projectApi.startPipeline(project.id);
+      message.success('流程已启动');
+      await refetch();
+    } catch {
+      message.error('启动流程失败');
+    }
+  };
+
+  const handlePause = async () => {
+    if (!project) return;
+    try {
+      await projectApi.pausePipeline(project.id);
+      message.success('流程已暂停');
+      await refetch();
+    } catch {
+      message.error('暂停流程失败');
+    }
+  };
 
   useEffect(() => {
     if (project) setCurrentProject(project);
@@ -51,10 +73,10 @@ export default function ProjectLayout() {
           <Space>
             <Tag color={statusColors[project.status]}>{statusLabels[project.status]}</Tag>
             {project.status === 'DRAFT' && (
-              <Button type="primary" onClick={() => projectApi.startPipeline(project.id)}>启动流程</Button>
+              <Button type="primary" onClick={handleStart}>启动流程</Button>
             )}
             {project.status === 'RUNNING' && (
-              <Button onClick={() => projectApi.pausePipeline(project.id)}>暂停</Button>
+              <Button onClick={handlePause}>暂停</Button>
             )}
           </Space>
         </div>

@@ -75,13 +75,26 @@ export class ProjectController {
    */
   create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { name, description, platform, config } = req.body;
+      const { name, description, platform, codeSource, gitUrl, figmaUrl, testMode } = req.body;
+      const createdById = req.user?.userId;
+
+      if (!createdById) {
+        res.status(401).json({
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Authentication required" },
+        });
+        return;
+      }
 
       const project = await this.service.create({
         name,
         description,
         platform,
-        config,
+        codeSource,
+        gitUrl,
+        figmaUrl,
+        testMode,
+        createdById,
       });
 
       res.status(201).json({
@@ -100,13 +113,16 @@ export class ProjectController {
   update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { id } = req.params;
-      const { name, description, platform, config, status } = req.body;
+      const { name, description, platform, codeSource, gitUrl, figmaUrl, testMode, status } = req.body;
 
       const project = await this.service.update(id, {
         name,
         description,
         platform,
-        config,
+        codeSource,
+        gitUrl,
+        figmaUrl,
+        testMode,
         status,
       });
 

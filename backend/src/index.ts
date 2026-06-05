@@ -13,6 +13,7 @@ import adminRoutes from "./routes/admin.routes";
 import projectRoutes from "./routes/project.routes";
 import pipelineRoutes from "./routes/pipeline.routes";
 import artifactRoutes from "./routes/artifact.routes";
+import creationRoutes from "./routes/creation.routes";
 
 import { errorHandler, notFoundHandler } from "./middleware/error.middleware";
 
@@ -57,6 +58,7 @@ app.use(`${API_PREFIX}/admin`, adminRoutes);
 app.use(`${API_PREFIX}/projects`, projectRoutes);
 app.use(`${API_PREFIX}/pipelines`, pipelineRoutes);
 app.use(`${API_PREFIX}/artifacts`, artifactRoutes);
+app.use(`${API_PREFIX}/creations`, creationRoutes);
 
 // ==================== 错误处理 ====================
 
